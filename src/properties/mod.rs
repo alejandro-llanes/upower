@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use zvariant::{LE, OwnedObjectPath, Type, Value, serialized::Context, to_bytes};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]
-pub enum Type {
+pub enum DeviceType {
     Unknown,
     LinePower,
     Battery,
@@ -34,7 +35,7 @@ pub enum Type {
     BluetoothGeneric,
 }
 
-impl From<u32> for Type {
+impl From<u32> for DeviceType {
     fn from(value: u32) -> Self {
         match value {
             1 => Self::LinePower,
@@ -64,13 +65,13 @@ impl From<u32> for Type {
             25 => Self::Camera,
             26 => Self::Wearable,
             27 => Self::Toy,
-            27 => Self::BluetoothGeneric,
+            28 => Self::BluetoothGeneric,
             _ => Self::Unknown,
         }
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]
 pub enum State {
     Unknown,
@@ -86,7 +87,7 @@ impl From<u32> for State {
     fn from(value: u32) -> Self {
         match value {
             1 => Self::Charging,
-            2 => Self::DisCharging,
+            2 => Self::Discharging,
             3 => Self::Empty,
             4 => Self::FullyCharged,
             5 => Self::PendingCharge,
@@ -96,7 +97,7 @@ impl From<u32> for State {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]
 pub enum Technology {
     Unknown,
@@ -122,7 +123,7 @@ impl From<u32> for Technology {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]
 pub enum WarningLevel {
     Unknown,
@@ -147,7 +148,7 @@ impl From<u32> for WarningLevel {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]
 pub enum BatteryLevel {
     Unknown,
@@ -174,7 +175,7 @@ impl From<u32> for BatteryLevel {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "String")]
 pub enum CapacityLevel {
     Unknown,
@@ -187,7 +188,7 @@ pub enum CapacityLevel {
 
 impl From<String> for CapacityLevel {
     fn from(value: String) -> Self {
-        match *value.to_lowercase() {
+        match &*value.to_lowercase() {
             "critical" => Self::Critical,
             "low" => Self::Low,
             "normal" => Self::Normal,

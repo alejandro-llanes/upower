@@ -1,5 +1,5 @@
 [package]
-name = "upower-info"
+name = "upower"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,4 +9,10 @@ zbus.default-features = false
 zbus.features = ["tokio"]
 serde.version = "1"
 serde.features = ["derive"]
-zvariant.verson = "5"
+zvariant.version = "5"
+serde_json.version = "1"
+
+[dev-dependencies]
+tokio.version = "1"
+tokio.features = ["full"]
+pretty_assertions.version = "1"
