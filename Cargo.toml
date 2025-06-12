@@ -1,0 +1,12 @@
+[package]
+name = "upower-info"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+zbus.version = "3"
+zbus.default-features = false
+zbus.features = ["tokio"]
+serde.version = "1"
+serde.features = ["derive"]
+zvariant.verson = "5"
