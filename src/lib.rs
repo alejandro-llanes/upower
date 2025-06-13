@@ -1,9 +1,12 @@
 use properties::{BatteryLevel, CapacityLevel, DeviceType, State, Technology, WarningLevel};
 use serde::{Deserialize, Serialize};
-use zbus::{
-    Connection, proxy,
-    zvariant::{OwnedObjectPath, Type},
-};
+use zbus::{Connection, proxy, zvariant::OwnedObjectPath};
+
+// https://upower.freedesktop.org/docs/
+// https://upower.freedesktop.org/docs/ref-dbus.html
+// https://upower.freedesktop.org/docs/Device.html
+// https://gitlab.freedesktop.org/upower
+
 mod properties;
 
 const UPOWER_DESTINATION: &str = "org.freedesktop.UPower";
@@ -33,7 +36,7 @@ trait UPowerDevice {
     #[zbus(property)]
     fn update_time(&self) -> zbus::Result<u64>;
 
-    #[zbus(property)]
+    #[zbus(name = "Type", property)]
     fn type_(&self) -> zbus::Result<u32>;
 
     #[zbus(property)]
@@ -45,8 +48,7 @@ trait UPowerDevice {
     #[zbus(property)]
     fn has_statistics(&self) -> zbus::Result<bool>;
 
-    #[zbus(property)]
-    #[zbus(name = "Online")]
+    #[zbus(name = "Online", property)]
     fn on_line(&self) -> zbus::Result<bool>;
 
     #[zbus(property)]
@@ -98,7 +100,7 @@ trait UPowerDevice {
     fn capacity(&self) -> zbus::Result<f64>;
 
     #[zbus(property)]
-    fn tecnology(&self) -> zbus::Result<u32>;
+    fn technology(&self) -> zbus::Result<u32>;
 
     #[zbus(property)]
     fn warning_level(&self) -> zbus::Result<u32>;
@@ -131,88 +133,45 @@ trait UPowerDevice {
     fn capacity_level(&self) -> zbus::Result<String>;
 }
 
-//
-// https://upower.freedesktop.org/docs/
-// https://upower.freedesktop.org/docs/ref-dbus.html
-// https://upower.freedesktop.org/docs/Device.html
-// https://gitlab.freedesktop.org/upower
-#[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
-//#[serde(rename_all = "camelCase")]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct UPowerDevice {
-    #[serde(rename = "NativePath")]
-    native_path: String,
-    #[zvariant(rename = "Vendor")]
-    vendor: String,
-    #[zvariant(rename = "Model")]
-    model: String,
-    #[zvariant(rename = "Serial")]
-    serial: String,
-    #[zvariant(rename = "UpdateTime")]
-    update_time: u64,
-    #[zvariant(rename = "Type")]
-    type_: properties::DeviceType,
-    #[zvariant(rename = "PowerSupply")]
-    power_supply: bool,
-    #[zvariant(rename = "HasHistory")]
-    has_history: bool,
-    #[zvariant(rename = "HasStatistics")]
-    has_statistics: bool,
-    #[zvariant(rename = "Online")]
-    on_line: bool,
-    #[zvariant(rename = "Energy")]
-    energy: f64,
-    #[zvariant(rename = "EnergyEmpty")]
-    energy_empty: f64,
-    #[zvariant(rename = "EnergyFull")]
-    energy_full: f64,
-    #[zvariant(rename = "EnergyFullDesign")]
-    energy_full_design: f64,
-    #[zvariant(rename = "EnergyRate")]
-    energy_rate: f64,
-    #[zvariant(rename = "ChargeCycles")]
-    charge_cycles: i32,
-    #[zvariant(rename = "Luminosity")]
-    luminosity: f64,
-    #[zvariant(rename = "Voltage")]
-    voltage: f64,
-    #[zvariant(rename = "TimeToEmpty")]
-    time_to_empty: i64,
-    #[zvariant(rename = "TimeToFull")]
-    time_to_full: i64,
-    #[zvariant(rename = "Percentage")]
-    percentage: f64,
-    #[zvariant(rename = "Temperature")]
-    temperature: f64,
-    #[zvariant(rename = "IsPresent")]
-    is_present: bool,
-    #[zvariant(rename = "State")]
-    state: properties::State,
-    #[zvariant(rename = "IsRechargeable")]
-    is_rechargeable: bool,
-    #[zvariant(rename = "Capacity")]
-    capacity: f64,
-    #[zvariant(rename = "Technology")]
-    technology: properties::Technology,
-    #[zvariant(rename = "WarningLevel")]
-    warning_level: properties::WarningLevel,
-    #[zvariant(rename = "BatteryLevel")]
-    battery_level: properties::BatteryLevel,
-    #[zvariant(rename = "IconName")]
-    icon_name: String,
-    #[zvariant(rename = "ChargeStartThreshold")]
-    charge_start_threshold: u32, // betweeen 1 and 100
-    #[zvariant(rename = "ChargeEndThreshold")]
-    charge_end_threshold: u32, // betweeen 1 and 100
-    #[zvariant(rename = "ChargeThresholdEnabled")]
-    charge_threshold_enabled: bool,
-    #[zvariant(rename = "ChargeThresholdSupported")]
-    charge_threshold_supported: bool,
-    #[zvariant(rename = "VoltageMinDesign")]
-    voltage_min_design: f64,
-    #[zvariant(rename = "VoltageMaxDesign")]
-    voltage_max_design: f64,
-    #[zvariant(rename = "CapacityLevel")]
-    capacity_level: properties::CapacityLevel,
+    native_path: Option<String>,
+    vendor: Option<String>,
+    model: Option<String>,
+    serial: Option<String>,
+    update_time: Option<u64>,
+    type_: Option<properties::DeviceType>,
+    power_supply: Option<bool>,
+    has_history: Option<bool>,
+    has_statistics: Option<bool>,
+    on_line: Option<bool>,
+    energy: Option<f64>,
+    energy_empty: Option<f64>,
+    energy_full: Option<f64>,
+    energy_full_design: Option<f64>,
+    energy_rate: Option<f64>,
+    charge_cycles: Option<i32>,
+    luminosity: Option<f64>,
+    voltage: Option<f64>,
+    time_to_empty: Option<i64>,
+    time_to_full: Option<i64>,
+    percentage: Option<f64>,
+    temperature: Option<f64>,
+    is_present: Option<bool>,
+    state: Option<properties::State>,
+    is_rechargeable: Option<bool>,
+    capacity: Option<f64>,
+    technology: Option<properties::Technology>,
+    warning_level: Option<properties::WarningLevel>,
+    battery_level: Option<properties::BatteryLevel>,
+    icon_name: Option<String>,
+    charge_start_threshold: Option<BoundedU32>, // betweeen 1 and 100
+    charge_end_threshold: Option<BoundedU32>,   // betweeen 1 and 100
+    charge_threshold_enabled: Option<bool>,
+    charge_threshold_supported: Option<bool>,
+    voltage_min_design: Option<f64>,
+    voltage_max_design: Option<f64>,
+    capacity_level: Option<properties::CapacityLevel>,
 }
 
 pub trait AsyncTryFrom<T>
@@ -226,43 +185,68 @@ where
 impl AsyncTryFrom<UPowerDeviceProxy<'_>> for UPowerDevice {
     type Error = zbus::Error;
     async fn as_try_from(value: UPowerDeviceProxy<'_>) -> Result<Self, Self::Error> {
-        let native_path = value.native_path().await?;
-        let vendor = value.vendor().await?;
-        let model = value.model().await?;
-        let serial = value.serial().await?;
-        let update_time = value.update_time().await?;
-        let type_ = DeviceType::from(value.type_().await?);
-        let power_supply = value.power_supply().await?;
-        let has_history = value.has_history().await?;
-        let has_statistics = value.has_statistics().await?;
-        let on_line = value.on_line().await?;
-        let energy = value.energy().await?;
-        let energy_empty = value.energy_empty().await?;
-        let energy_full = value.energy_full().await?;
-        let energy_full_design = value.energy_full_design().await?;
-        let energy_rate = value.energy_rate().await?;
-        let charge_cycles = value.charge_cycles().await?;
-        let luminosity = value.luminosity().await?;
-        let voltage = value.voltage().await?;
-        let time_to_empty = value.time_to_empty().await?;
-        let time_to_full = value.time_to_full().await?;
-        let percentage = value.percentage().await?;
-        let temperature = value.temperature().await?;
-        let is_present = value.is_present().await?;
-        let state = State::from(value.state().await?);
-        let is_rechargeable = value.is_rechargeable().await?;
-        let capacity = value.capacity().await?;
-        let technology = Technology::from(value.tecnology().await?);
-        let warning_level = WarningLevel::from(value.warning_level().await?);
-        let battery_level = BatteryLevel::from(value.battery_level().await?);
-        let icon_name = value.icon_name().await?;
-        let charge_start_threshold = value.charge_start_threshold().await?;
-        let charge_end_threshold = value.charge_end_threshold().await?;
-        let charge_threshold_enabled = value.charge_threshold_enabled().await?;
-        let charge_threshold_supported = value.charge_threshold_supported().await?;
-        let voltage_min_design = value.voltage_min_design().await?;
-        let voltage_max_design = value.voltage_max_design().await?;
-        let capacity_level = CapacityLevel::from(value.capacity_level().await?);
+        let native_path = value.native_path().await.ok();
+        let vendor = value.vendor().await.ok();
+        let model = value.model().await.ok();
+        let serial = value.serial().await.ok();
+        let update_time = value.update_time().await.ok();
+        let type_ = value
+            .type_()
+            .await
+            .map_or(None, |val| Some(DeviceType::from(val)));
+        let power_supply = value.power_supply().await.ok();
+        let has_history = value.has_history().await.ok();
+        let has_statistics = value.has_statistics().await.ok();
+        let on_line = value.on_line().await.ok();
+        let energy = value.energy().await.ok();
+        let energy_empty = value.energy_empty().await.ok();
+        let energy_full = value.energy_full().await.ok();
+        let energy_full_design = value.energy_full_design().await.ok();
+        let energy_rate = value.energy_rate().await.ok();
+        let charge_cycles = value.charge_cycles().await.ok();
+        let luminosity = value.luminosity().await.ok();
+        let voltage = value.voltage().await.ok();
+        let time_to_empty = value.time_to_empty().await.ok();
+        let time_to_full = value.time_to_full().await.ok();
+        let percentage = value.percentage().await.ok();
+        let temperature = value.temperature().await.ok();
+        let is_present = value.is_present().await.ok();
+        let state = value
+            .state()
+            .await
+            .map_or(None, |val| Some(State::from(val)));
+        let is_rechargeable = value.is_rechargeable().await.ok();
+        let capacity = value.capacity().await.ok();
+        let technology = value
+            .technology()
+            .await
+            .map_or(None, |val| Some(Technology::from(val)));
+        let warning_level = value
+            .warning_level()
+            .await
+            .map_or(None, |val| Some(WarningLevel::from(val)));
+        let battery_level = value
+            .battery_level()
+            .await
+            .map_or(None, |val| Some(BatteryLevel::from(val)));
+        let icon_name = value.icon_name().await.ok();
+        let charge_start_threshold = value
+            .charge_start_threshold()
+            .await
+            .map_or(None, |val| BoundedU32::try_from(val).ok());
+        let charge_end_threshold = value
+            .charge_end_threshold()
+            .await
+            .map_or(None, |val| BoundedU32::try_from(val).ok());
+        let charge_threshold_enabled = value.charge_threshold_enabled().await.ok();
+        let charge_threshold_supported = value.charge_threshold_supported().await.ok();
+        let voltage_min_design = value.voltage_min_design().await.ok();
+        let voltage_max_design = value.voltage_max_design().await.ok();
+        let capacity_level = value
+            .capacity_level()
+            .await
+            .map_or(None, |val| Some(CapacityLevel::from(val)));
+
         Ok(Self {
             native_path,
             vendor,
@@ -305,20 +289,17 @@ impl AsyncTryFrom<UPowerDeviceProxy<'_>> for UPowerDevice {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BoundedU32(u32);
 
-impl<'de> Deserialize<'de> for BoundedU32 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let val = u32::deserialize(deserializer)?;
-        if (0..=100).contains(&val) {
-            Ok(BoundedU32(val))
+impl TryFrom<u32> for BoundedU32 {
+    type Error = zbus::Error;
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if (0..=100).contains(&value) {
+            Ok(BoundedU32(value))
         } else {
-            Err(serde::de::Error::custom(format!(
-                "Value {val} is out of bounds (0-100)."
+            Err(zbus::Error::Failure(format!(
+                "Value {value} is out of bounds (0-100)."
             )))
         }
     }
@@ -378,9 +359,8 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        //assert_eq!(UPower::new().await, Result::Ok)
         let upower = UPower::new().await;
-        println!("{upower:?}");
+        //println!("{upower:?}");
         assert!(upower.is_ok())
     }
 }
