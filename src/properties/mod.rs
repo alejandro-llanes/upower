@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zvariant::{LE, OwnedObjectPath, Type, Value, serialized::Context, to_bytes};
+use zvariant::Type;
 
 #[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
 #[serde(from = "u32")]

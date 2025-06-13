@@ -1,15 +1,135 @@
+use properties::{BatteryLevel, CapacityLevel, DeviceType, State, Technology, WarningLevel};
 use serde::{Deserialize, Serialize};
 use zbus::{
-    Connection, Proxy, ProxyBuilder, fdo::PropertiesProxy, names::InterfaceName,
-    zvariant::OwnedValue,
+    Connection, proxy,
+    zvariant::{OwnedObjectPath, Type},
 };
-use zvariant::{ObjectPath, OwnedObjectPath, Type, Value, serialized::Context, to_bytes};
 mod properties;
 
-const UPOWER_DEST: &str = "org.freedesktop.UPower";
+const UPOWER_DESTINATION: &str = "org.freedesktop.UPower";
 const UPOWER_PATH: &str = "/org/freedesktop/UPower";
 const UPOWER_INTERFACE: &str = "org.freedesktop.UPower";
-const UPOWER_DEVICES_DEST: &str = "org.freedesktop.UPower.Device";
+const UPOWER_DEVICE_INTERFACE: &str = "org.freedesktop.UPower.Device";
+
+#[proxy(gen_async = true)]
+trait UPower {
+    fn enumerate_devices(&self) -> zbus::Result<Vec<OwnedObjectPath>>;
+}
+
+#[proxy(gen_async = true)]
+trait UPowerDevice {
+    #[zbus(property)]
+    fn native_path(&self) -> zbus::Result<String>;
+
+    #[zbus(property)]
+    fn vendor(&self) -> zbus::Result<String>;
+
+    #[zbus(property)]
+    fn model(&self) -> zbus::Result<String>;
+
+    #[zbus(property)]
+    fn serial(&self) -> zbus::Result<String>;
+
+    #[zbus(property)]
+    fn update_time(&self) -> zbus::Result<u64>;
+
+    #[zbus(property)]
+    fn type_(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn power_supply(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn has_history(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn has_statistics(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    #[zbus(name = "Online")]
+    fn on_line(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn energy(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn energy_empty(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn energy_full(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn energy_full_design(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn energy_rate(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn charge_cycles(&self) -> zbus::Result<i32>;
+
+    #[zbus(property)]
+    fn luminosity(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn voltage(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn time_to_empty(&self) -> zbus::Result<i64>;
+
+    #[zbus(property)]
+    fn time_to_full(&self) -> zbus::Result<i64>;
+
+    #[zbus(property)]
+    fn percentage(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn temperature(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn is_present(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn state(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn is_rechargeable(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn capacity(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn tecnology(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn warning_level(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn battery_level(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn icon_name(&self) -> zbus::Result<String>;
+
+    #[zbus(property)]
+    fn charge_start_threshold(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn charge_end_threshold(&self) -> zbus::Result<u32>;
+
+    #[zbus(property)]
+    fn charge_threshold_enabled(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn charge_threshold_supported(&self) -> zbus::Result<bool>;
+
+    #[zbus(property)]
+    fn voltage_min_design(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn voltage_max_design(&self) -> zbus::Result<f64>;
+
+    #[zbus(property)]
+    fn capacity_level(&self) -> zbus::Result<String>;
+}
 
 //
 // https://upower.freedesktop.org/docs/
@@ -17,8 +137,9 @@ const UPOWER_DEVICES_DEST: &str = "org.freedesktop.UPower.Device";
 // https://upower.freedesktop.org/docs/Device.html
 // https://gitlab.freedesktop.org/upower
 #[derive(Deserialize, Serialize, Type, PartialEq, Debug)]
+//#[serde(rename_all = "camelCase")]
 pub struct UPowerDevice {
-    #[zvariant(rename = "NativePath")]
+    #[serde(rename = "NativePath")]
     native_path: String,
     #[zvariant(rename = "Vendor")]
     vendor: String,
@@ -31,12 +152,12 @@ pub struct UPowerDevice {
     #[zvariant(rename = "Type")]
     type_: properties::DeviceType,
     #[zvariant(rename = "PowerSupply")]
-    power_suply: bool,
+    power_supply: bool,
     #[zvariant(rename = "HasHistory")]
     has_history: bool,
     #[zvariant(rename = "HasStatistics")]
     has_statistics: bool,
-    #[zvariant(rename = "OnLine")]
+    #[zvariant(rename = "Online")]
     on_line: bool,
     #[zvariant(rename = "Energy")]
     energy: f64,
@@ -94,6 +215,96 @@ pub struct UPowerDevice {
     capacity_level: properties::CapacityLevel,
 }
 
+pub trait AsyncTryFrom<T>
+where
+    Self: Sized + Sync + Send,
+{
+    type Error;
+    fn as_try_from(value: T) -> impl std::future::Future<Output = Result<Self, Self::Error>>;
+}
+
+impl AsyncTryFrom<UPowerDeviceProxy<'_>> for UPowerDevice {
+    type Error = zbus::Error;
+    async fn as_try_from(value: UPowerDeviceProxy<'_>) -> Result<Self, Self::Error> {
+        let native_path = value.native_path().await?;
+        let vendor = value.vendor().await?;
+        let model = value.model().await?;
+        let serial = value.serial().await?;
+        let update_time = value.update_time().await?;
+        let type_ = DeviceType::from(value.type_().await?);
+        let power_supply = value.power_supply().await?;
+        let has_history = value.has_history().await?;
+        let has_statistics = value.has_statistics().await?;
+        let on_line = value.on_line().await?;
+        let energy = value.energy().await?;
+        let energy_empty = value.energy_empty().await?;
+        let energy_full = value.energy_full().await?;
+        let energy_full_design = value.energy_full_design().await?;
+        let energy_rate = value.energy_rate().await?;
+        let charge_cycles = value.charge_cycles().await?;
+        let luminosity = value.luminosity().await?;
+        let voltage = value.voltage().await?;
+        let time_to_empty = value.time_to_empty().await?;
+        let time_to_full = value.time_to_full().await?;
+        let percentage = value.percentage().await?;
+        let temperature = value.temperature().await?;
+        let is_present = value.is_present().await?;
+        let state = State::from(value.state().await?);
+        let is_rechargeable = value.is_rechargeable().await?;
+        let capacity = value.capacity().await?;
+        let technology = Technology::from(value.tecnology().await?);
+        let warning_level = WarningLevel::from(value.warning_level().await?);
+        let battery_level = BatteryLevel::from(value.battery_level().await?);
+        let icon_name = value.icon_name().await?;
+        let charge_start_threshold = value.charge_start_threshold().await?;
+        let charge_end_threshold = value.charge_end_threshold().await?;
+        let charge_threshold_enabled = value.charge_threshold_enabled().await?;
+        let charge_threshold_supported = value.charge_threshold_supported().await?;
+        let voltage_min_design = value.voltage_min_design().await?;
+        let voltage_max_design = value.voltage_max_design().await?;
+        let capacity_level = CapacityLevel::from(value.capacity_level().await?);
+        Ok(Self {
+            native_path,
+            vendor,
+            model,
+            serial,
+            update_time,
+            type_,
+            power_supply,
+            has_history,
+            has_statistics,
+            on_line,
+            energy,
+            energy_empty,
+            energy_full,
+            energy_full_design,
+            energy_rate,
+            charge_cycles,
+            luminosity,
+            voltage,
+            time_to_empty,
+            time_to_full,
+            percentage,
+            temperature,
+            is_present,
+            state,
+            is_rechargeable,
+            capacity,
+            technology,
+            warning_level,
+            battery_level,
+            icon_name,
+            charge_start_threshold,
+            charge_end_threshold,
+            charge_threshold_enabled,
+            charge_threshold_supported,
+            voltage_min_design,
+            voltage_max_design,
+            capacity_level,
+        })
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct BoundedU32(u32);
 
@@ -127,38 +338,31 @@ pub struct UPower {
 impl UPower {
     pub async fn new() -> zbus::Result<Self> {
         let conn = Connection::system().await?;
-        println!("Line 127");
+
         let mut devices: Vec<UPowerDevice> = Vec::default();
-        println!("Line 129");
-        let upower_proxy: Proxy = ProxyBuilder::new_bare(&conn)
-            .destination(UPOWER_DEST)?
+
+        let upower_proxy = UPowerProxy::builder(&conn)
+            .destination(UPOWER_DESTINATION)?
             .interface(UPOWER_INTERFACE)?
             .path(UPOWER_PATH)?
             .build()
             .await?;
-        println!("Line 141");
-        let devices_list: Vec<ObjectPath<'_>> = upower_proxy.call("EnumerateDevices", &()).await?;
-        println!("Line 143");
+
+        let devices_list = upower_proxy.enumerate_devices().await?;
+
         for device_path in devices_list {
             let path_str = device_path.as_str();
-            println!("Line 146");
-            let prop_proxy = PropertiesProxy::builder(&conn)
-                .destination(UPOWER_DEST)?
+
+            let dev_proxy = UPowerDeviceProxy::builder(&conn)
+                .destination(UPOWER_DESTINATION)?
+                .interface(UPOWER_DEVICE_INTERFACE)?
                 .path(path_str)?
                 .build()
                 .await?;
-            println!("Line 152");
-            let props: std::collections::HashMap<String, OwnedValue> = prop_proxy
-                .get_all(InterfaceName::from_static_str(UPOWER_DEVICES_DEST)?)
-                .await?;
-            println!("Line 156");
-            let json_values: serde_json::Value = serde_json::to_value(&props).unwrap();
-            println!("Line 158");
-            let device: UPowerDevice = serde_json::from_value(json_values).unwrap();
-            println!("Line 160");
+
+            let device = UPowerDevice::as_try_from(dev_proxy).await?;
             devices.push(device);
         }
-        println!("Line 163");
         Ok(Self { devices })
     }
 
